@@ -207,7 +207,7 @@ func preventTableOverscrolling(m model) {
 }
 
 func runQueryAndUpdateTable(m model, forceUpdateTable, maintainCursor bool) tea.Cmd {
-	if (m.runQuery != nil && *m.runQuery != m.lastQuery) || forceUpdateTable || m.searchErr != nil || m.regexMode {
+	if (m.runQuery != nil && *m.runQuery != m.lastQuery) || forceUpdateTable || m.searchErr != nil {
 		query := m.lastQuery
 		if m.runQuery != nil {
 			query = *m.runQuery
@@ -281,7 +281,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.regexMode = !m.regexMode
 			searchQuery := m.queryInput.Value()
 			m.runQuery = &searchQuery
-			cmd := runQueryAndUpdateTable(m, false, true)
+			cmd := runQueryAndUpdateTable(m, true, true)
 			return m, cmd
 		case key.Matches(msg, loadedKeyBindings.JumpStartOfInput):
 			m.queryInput.SetCursor(0)
