@@ -149,7 +149,15 @@ func MakeRegexFromQuery(query string) string {
 var regexTokenPattern = regexp.MustCompile(`(-?)(regex:|re:)(\S+)`)
 
 // extractRegexPatterns extracts regex patterns directly from query string
+// extractRegexPatterns extracts regex patterns directly from query string
 func extractRegexPatterns(query string) (include []string, exclude []string) {
+	trimmed := strings.TrimSpace(query)
+	if strings.HasPrefix(trimmed, "re:") {
+		return []string{strings.TrimPrefix(trimmed, "re:")}, nil
+	}
+	if strings.HasPrefix(trimmed, "regex:") {
+		return []string{strings.TrimPrefix(trimmed, "regex:")}, nil
+	}
 	matches := regexTokenPattern.FindAllStringSubmatch(query, -1)
 	for _, m := range matches {
 		isExclude := m[1] == "-"
@@ -1007,11 +1015,19 @@ func Search(ctx context.Context, db *gorm.DB, query string, limit int) ([]*data.
 	searchLimit := limit
 	if hasRegex && limit > 0 {
 		searchLimit = limit * 10
-		if searchLimit < 1000 {
-			searchLimit = 1000
+		if searchLimit < 10000 {
+			searchLimit = 10000
 		}
 	}
-	results, err := SearchWithOffset(ctx, db, query, searchLimit, 0)
+	
+// If we are using regex, we must NOT pass the raw query to SQL, 
+// because SQL will try to match regex tokens (like ".*") as literal text.
+// Instead, we pass an empty query to fetch the latest rows, then filter in Go.
+sqlQuery := query
+if hasRegex {
+sqlQuery = "" 
+}
+results, err := SearchWithOffset(ctx, db, sqlQuery, searchLimit, 0)
 	if err != nil {
 		return nil, err
 	}
